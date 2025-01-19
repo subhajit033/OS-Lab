@@ -26,6 +26,6 @@ output_file="output_line_$m.txt"
 sed -n "${m}p" "$input_file" > "$output_file"
 
 # Display the result
-echo "The mth line has been saved to '$output_file'."
+echo "The mth line has been saved to $output_file."
 echo "Contents of '$output_file':"
 cat "$output_file"
