@@ -1,19 +1,26 @@
 #!/bin/bash
 
-# Function to convert a date to the number of seconds since Unix Epoch
-date_to_seconds() {
-    date -d "$1" +%s
+# Function to convert DD/MM/YYYY to YYYY-MM-DD
+convert_date_format() {
+    echo "$1" | awk -F/ '{printf "%04d-%02d-%02d", $3, $2, $1}'
 }
 
 # Prompt user to enter the first date
-read -p "Enter the first date (dd/mm/yyyy): " date1
+read -p "Enter the first date (dd/mm/yyyy): " date_a
 
 # Prompt user to enter the second date
-read -p "Enter the second date (dd/mm/yyyy): " date2
+read -p "Enter the second date (dd/mm/yyyy): " date_b
 
-# Convert the dates to seconds since the Unix epoch
-date1_seconds=$(date_to_seconds "$date1")
-date2_seconds=$(date_to_seconds "$date2")
+# Convert dates to YYYY-MM-DD format
+date1=$(convert_date_format "$date_a")
+date2=$(convert_date_format "$date_b")
+
+# Convert dates to seconds since the Unix epoch
+date1_seconds=$(date -d "$date1" +%s)
+date2_seconds=$(date -d "$date2" +%s)
+
+# Validate if date conversion succeeded
+
 
 # Calculate the absolute difference in seconds
 diff_seconds=$((date2_seconds - date1_seconds))
@@ -25,4 +32,4 @@ fi
 diff_days=$((diff_seconds / 86400))
 
 # Display the result
-echo "The difference between $date1 and $date2 is $diff_days days."
+echo "The difference between $date_a and $date_b is $diff_days days."
