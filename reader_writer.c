@@ -1,131 +1,76 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <pthread.h>
-#include <unistd.h>
+#include <semaphore.h>
+#include <stdio.h>
 
-#define NUM_READERS 5
-#define NUM_WRITERS 2
+/*
+This program provides a possible solution for first readers writers problem using mutex and semaphore.
+I have used 10 readers and 5 producers to demonstrate the solution. You can always play with these values.
+*/
 
-// Shared resource
-int shared_data = 0;
+sem_t wrt;
+pthread_mutex_t mutex;
+int cnt = 1;
+int numreader = 0;
 
-// Mutex and condition variables for synchronization
-pthread_mutex_t read_mutex = PTHREAD_MUTEX_INITIALIZER;    // For reading
-pthread_mutex_t write_mutex = PTHREAD_MUTEX_INITIALIZER;   // For writing
-pthread_cond_t read_condition = PTHREAD_COND_INITIALIZER;  // For readers waiting
-pthread_cond_t write_condition = PTHREAD_COND_INITIALIZER; // For writers waiting
-
-int readers_count = 0; // Number of readers currently reading
-
-// Reader thread function
-void *reader(void *arg)
+void *writer(void *wno)
 {
-    int reader_id = *((int *)arg);
-
-    while (1)
-    {
-        pthread_mutex_lock(&read_mutex); // Lock the read mutex
-
-        // Wait if a writer is writing (ensure no writer writes when readers are reading)
-        while (readers_count == -1)
-        {
-            pthread_cond_wait(&read_condition, &read_mutex);
-        }
-
-        readers_count++;                   // Increment the number of readers
-        pthread_mutex_unlock(&read_mutex); // Unlock the read mutex
-
-        // Read the shared data
-        printf("Reader %d: Read shared data = %d\n", reader_id, shared_data);
-
-        pthread_mutex_lock(&read_mutex); // Lock the read mutex again
-
-        readers_count--; // Decrement the number of readers
-        if (readers_count == 0)
-        {
-            pthread_cond_signal(&write_condition); // Signal any waiting writer
-        }
-
-        pthread_mutex_unlock(&read_mutex); // Unlock the read mutex
-
-        sleep(1); // Simulate reading time
-    }
-
-    return NULL;
+    sem_wait(&wrt);
+    cnt = cnt * 2;
+    printf("Writer %d modified cnt to %d\n", (*((int *)wno)), cnt);
+    sem_post(&wrt);
 }
-
-// Writer thread function
-void *writer(void *arg)
+void *reader(void *rno)
 {
-    int writer_id = *((int *)arg);
-
-    while (1)
+    // Reader acquire the lock before modifying numreader
+    pthread_mutex_lock(&mutex);
+    numreader++;
+    if (numreader == 1)
     {
-        pthread_mutex_lock(&write_mutex); // Lock the write mutex
-
-        // Wait for all readers to finish and ensure no readers are active
-        pthread_mutex_lock(&read_mutex);
-        while (readers_count > 0)
-        {
-            pthread_cond_wait(&write_condition, &read_mutex);
-        }
-
-        // Set readers_count to -1 to indicate a writer is writing
-        readers_count = -1;
-
-        pthread_mutex_unlock(&read_mutex); // Unlock the read mutex
-
-        // Write to the shared resource
-        shared_data++;
-        printf("Writer %d: Wrote shared data = %d\n", writer_id, shared_data);
-
-        pthread_mutex_unlock(&write_mutex); // Unlock the write mutex
-
-        // Signal all waiting readers that they can read again
-        pthread_cond_broadcast(&read_condition);
-
-        sleep(2); // Simulate writing time
+        sem_wait(&wrt); // If this id the first reader, then it will block the writer
     }
+    pthread_mutex_unlock(&mutex);
+    // Reading Section
+    printf("Reader %d: read cnt as %d\n", *((int *)rno), cnt);
 
-    return NULL;
+    // Reader acquire the lock before modifying numreader
+    pthread_mutex_lock(&mutex);
+    numreader--;
+    if (numreader == 0)
+    {
+        sem_post(&wrt); // If this is the last reader, it will wake up the writer.
+    }
+    pthread_mutex_unlock(&mutex);
 }
 
 int main()
 {
-    pthread_t readers[NUM_READERS], writers[NUM_WRITERS];
-    int reader_ids[NUM_READERS], writer_ids[NUM_WRITERS];
 
-    // Create reader threads
-    for (int i = 0; i < NUM_READERS; i++)
+    pthread_t read[10], write[5];
+    pthread_mutex_init(&mutex, NULL);
+    sem_init(&wrt, 0, 1);
+
+    int a[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}; // Just used for numbering the producer and consumer
+
+    for (int i = 0; i < 10; i++)
     {
-        reader_ids[i] = i + 1;
-        if (pthread_create(&readers[i], NULL, reader, &reader_ids[i]) != 0)
-        {
-            perror("Reader thread creation failed");
-            return 1;
-        }
+        pthread_create(&read[i], NULL, (void *)reader, (void *)&a[i]);
     }
-
-    // Create writer threads
-    for (int i = 0; i < NUM_WRITERS; i++)
+    for (int i = 0; i < 5; i++)
     {
-        writer_ids[i] = i + 1;
-        if (pthread_create(&writers[i], NULL, writer, &writer_ids[i]) != 0)
-        {
-            perror("Writer thread creation failed");
-            return 1;
-        }
+        pthread_create(&write[i], NULL, (void *)writer, (void *)&a[i]);
     }
 
-    // Join the threads (in a real program, this might not terminate, as it's an infinite loop)
-    for (int i = 0; i < NUM_READERS; i++)
+    for (int i = 0; i < 10; i++)
     {
-        pthread_join(readers[i], NULL);
+        pthread_join(read[i], NULL);
     }
-    for (int i = 0; i < NUM_WRITERS; i++)
+    for (int i = 0; i < 5; i++)
     {
-        pthread_join(writers[i], NULL);
+        pthread_join(write[i], NULL);
     }
+
+    pthread_mutex_destroy(&mutex);
+    sem_destroy(&wrt);
 
     return 0;
 }
