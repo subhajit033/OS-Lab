@@ -39,4 +39,71 @@ for entry in $directory_listing; do
   echo "$entry"
 done
 
+Question -4
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+// Function to generate 'n' random numbers and store them in an array
+void generateRandomNumbers(int* arr, int n) {
+    srand(time(NULL));
+    for (int i = 0; i < n; i++) {
+        arr[i] = rand() % 100; // Generate random numbers between 0 and 99
+    }
+}
+
+// Function to search for a given number in an array
+void searchNumber(int* arr, int n, int target) {
+    for (int i = 0; i < n; i++) {
+        if (arr[i] == target) {
+            printf("Number %d found at index %d\n", target, i);
+            return;
+        }
+    }
+    printf("Number %d not found in the array\n", target);
+}
+
+int main() {
+    int n;
+    printf("Enter the number of elements: ");
+    scanf("%d", &n);
+
+    int* arr = (int*)malloc(n * sizeof(int));
+    generateRandomNumbers(arr, n);
+
+    printf("Generated numbers: ");
+    for (int i = 0; i < n; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+
+    int target;
+    printf("Enter the number to search: ");
+    scanf("%d", &target);
+
+    pid_t pid = fork();
+
+    if (pid == -1) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+
+    if (pid == 0) { // Child process
+        printf("Child process searching for the number...\n");
+        searchNumber(arr, n, target);
+        exit(EXIT_SUCCESS);
+    } else { // Parent process
+        printf("Parent process waiting for the child process to finish...\n");
+        wait(NULL);
+        printf("Child process finished. Exiting...\n");
+    }
+
+    free(arr);
+    return 0;
+}
+
 
