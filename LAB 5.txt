@@ -1,0 +1,42 @@
+LAB 5
+Q1.   Try the following code shows how we may store the output of any command in a variable for further processing.
+## Fetch the hour value of the current ## time in 24-hour format
+h=$(date +%H)
+echo $h
+Now, write a shell script that greets ("Good Morning", "Good Afternoon", or "Good Evening") the user based on system time.
+
+ANS:-
+
+#!/bin/bash
+
+# Get the current hour in 24-hour format
+hour=$(date +%H)
+
+# Determine the appropriate greeting
+if [ "$hour" -ge 5 ] && [ "$hour" -lt 12 ]; then
+  greeting="Good Morning"
+elif [ "$hour" -ge 12 ] && [ "$hour" -lt 18 ]; then
+  greeting="Good Afternoon"
+else
+  greeting="Good Evening"
+fi
+
+# Display the greeting
+echo "$greeting!"
+
+Q2.Write a shell script that stores the directory listing in a variable and print each entry using a forloop.
+
+ANS:-
+
+#!/bin/bash
+
+# Get the directory listing and store it in a variable
+directory_listing=$(ls)
+
+# Print each entry using a for loop
+echo "Directory entries:"
+for entry in $directory_listing; do
+  echo "$entry"
+done
+
+
